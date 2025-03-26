@@ -7,6 +7,7 @@ from .models import (Tag, Ingredient, IngredientInRecipe,
 class TagAdmin(admin.ModelAdmin):
     list_display = ('name', 'slug')
     search_fields = ('name', 'slug')
+    prepopulated_fields = {'slug': ('name',)}
 
 
 @admin.register(Ingredient)
