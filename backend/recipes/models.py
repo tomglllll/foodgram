@@ -2,12 +2,23 @@ from django.db import models
 from django.core.validators import MinValueValidator
 from users.models import User
 
-# TODO добавить константы
+from .constants import (
+    INGREDIENT_NAME_MAX_LENGTH,
+    MEASUREMENT_MAX_LENGTH,
+    RECIPE_NAME_MAX_LENGTH,
+    TAG_NAME_MAX_LENGTH,
+    TAG_SLUG_MAX_LENGTH,
+    MIN_COOKING_TIME,
+    MIN_INGREDIENT_AMOUNT,
+    COOKING_TIME_VALIDATION_MESSAGE,
+    INGREDIENT_AMOUNT_VALIDATION_MESSAGE
+)
+from .validators import validate_slug
 
 
 class Ingredient(models.Model):
-    name = models.CharField(max_length=128)
-    measurement_unit = models.CharField(max_length=64)
+    name = models.CharField(max_length=INGREDIENT_NAME_MAX_LENGTH)
+    measurement_unit = models.CharField(max_length=MEASUREMENT_MAX_LENGTH)
 
     class Meta:
         verbose_name = 'Ингредиент'
@@ -25,14 +36,14 @@ class Ingredient(models.Model):
 
 class Tag(models.Model):
     name = models.CharField(
-        max_length=32,
+        max_length=TAG_NAME_MAX_LENGTH,
         unique=True
     )
 
-    # TODO добавить валидатор для слага ^[-a-zA-Z0-9_]+$
     slug = models.SlugField(
-        max_length=32,
-        unique=True
+        max_length=TAG_SLUG_MAX_LENGTH,
+        unique=True,
+        validators=(validate_slug,)
     )
 
     class Meta:
@@ -49,7 +60,7 @@ class Recipe(models.Model):
         on_delete=models.CASCADE,
         related_name='recipes',
     )
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=RECIPE_NAME_MAX_LENGTH)
     image = models.ImageField(
         upload_to='recipes/images/'
     )
@@ -66,9 +77,8 @@ class Recipe(models.Model):
     cooking_time = models.PositiveSmallIntegerField(
         validators=[
             MinValueValidator(
-                # TODO вынести в константу и заменить мэсэдж
-                limit_value=1,
-                message='Время приготовления не может быть меньше 1.'
+                limit_value=MIN_COOKING_TIME,
+                message=COOKING_TIME_VALIDATION_MESSAGE
             )
         ]
     )
@@ -82,7 +92,6 @@ class Recipe(models.Model):
 
 
 class IngredientInRecipe(models.Model):
-    # TODO дописать verbose
     ingredient = models.ForeignKey(
         Ingredient,
         on_delete=models.CASCADE,
@@ -96,9 +105,8 @@ class IngredientInRecipe(models.Model):
     amount = models.PositiveIntegerField(
         validators=[
             MinValueValidator(
-                # TODO вынести в константу и заменить мэсэдж
-                limit_value=1,
-                message='Количество не может быть меньше 1.'
+                limit_value=MIN_INGREDIENT_AMOUNT,
+                message=INGREDIENT_AMOUNT_VALIDATION_MESSAGE
             )
         ]
     )

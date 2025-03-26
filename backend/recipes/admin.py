@@ -5,14 +5,12 @@ from .models import (Tag, Ingredient, IngredientInRecipe,
 
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
-    # TODO проверить поля для фильтрации и поиска
     list_display = ('name', 'slug')
     search_fields = ('name', 'slug')
 
 
 @admin.register(Ingredient)
 class IngredientAdmin(admin.ModelAdmin):
-    # TODO проверить поля для фильтрации и поиска
     list_display = ('name', 'measurement_unit')
     search_fields = ('name',)
 
@@ -25,7 +23,6 @@ class IngredientInRecipeAdmin(admin.TabularInline):
 
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
-    # TODO перепроверить поля
     list_display = (
         'author',
         'name',
@@ -39,7 +36,7 @@ class RecipeAdmin(admin.ModelAdmin):
     readonly_fields = ('get_favorites_count',)
     inlines = (IngredientInRecipeAdmin,)
 
-    # TODO добавить фильтрацию по тегам
+    list_filter = ('tags',)
 
     def get_favorites_count(self, recipe):
         return recipe.favorites.count()
@@ -47,4 +44,4 @@ class RecipeAdmin(admin.ModelAdmin):
     get_favorites_count.short_description = 'Число добавлений в избранное'
 
 
-# TODO проверить нужна ли в админке корзина
+# TODO понять нужна ли в админке корзина (список покупок)
