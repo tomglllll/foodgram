@@ -4,7 +4,7 @@ from drf_extra_fields.fields import Base64ImageField
 
 from recipes.models import (Tag, Ingredient, IngredientInRecipe,
                             Recipe, ShoppingList, Favorite)
-from users.models import Subscription
+from users.models import Subscription, User
 
 from api.users.serializers import UserSerializer
 
@@ -121,20 +121,113 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
             # TODO перечислить все поля
         )
 
+    def _create_ingredients(self, obj, ingredients):
+        ingredients_in_recipe = [
+            IngredientInRecipe(
+                recipe=obj,
+                ingredient=ingredient['id'],
+                amount=ingredient['amount']
+            )
+            for ingredient in ingredients
+        ]
+        IngredientInRecipe.objects.bulk_create(ingredients_in_recipe)
 
-class SubscriptionSerializer(serializers.ModelSerializer):
+    def create(self, validated_data):
+        ingredients = validated_data.pop('ingredients')
+        validated_data['author'] = self.context.get('request').user
+        obj = Recipe.objects.create(**validated_data)
+        self._create_ingredients(obj, ingredients)
+        return obj
+
+    def update(self, instance, validated_data):
+        instance.name = validated_data.get('name', instance.name)
+        instance.cooking_time = validated_data.get('cooking_time',
+                                                   instance.cooking_time)
+        instance.tags.clear()
+        instance.tags.set(validated_data.pop('tags'))
+        instance.ingredients.clear()
+        self._create_ingredients(instance, validated_data.pop('ingredients'))
+        return super().update(instance, validated_data)
+
+    def to_representation(self, instance):
+        return RecipeListSerializer(
+            instance,
+            context={
+                'request': self.context.get('request')
+            }
+        ).data
+
+
+class SubscriptionSerializer(UserSerializer):
+    recipes = serializers.SerializerMethodField()
+    recipes_count = serializers.SerializerMethodField()
+    is_subscribed = serializers.SerializerMethodField(read_only=True)
+    # TODO
+
+    class Meta(UserSerializer.Meta):
+        model = User
+        fields = UserSerializer.Meta.fields + ('recipes',
+                                               'recipes_count')
+        read_only_fields = (
+            'email',
+            'username',
+            'first_name',
+            'last_name',
+            'avatar'
+        )
+
+    def get_recipes(self, obj):
+        request = self.context.get('request')
+        recipes_limit = request.query_params.get(['recipes_limit'])
+        queryset = obj.recipes.all()
+        if recipes_limit and recipes_limit.isdigit():
+            queryset = queryset[:int(recipes_limit)]
+        return RecipeCardSerializer(queryset, many=True).data
+
+    def get_recipes_count(self, obj):
+        return obj.recipes.count()
+
+
+class SubscriptionCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subscription
-        fields = ()
+        fields = (
+            'user',
+            'author'
+        )
+
+    def to_representation(self, instance):
+        return SubscriptionSerializer(
+            instance.author,
+            context={
+                'request': self.context.get('request')
+            }
+        ).data
 
 
 class ShoppingListSerializer(serializers.ModelSerializer):
     class Meta:
         model = ShoppingList
-        fields = ()
+        fields = ('user', 'recipe')
+
+    def to_representation(self, instance):
+        return RecipeCardSerializer(
+            instance.recipe,
+            context={
+                'request': self.context.get('request')
+            }
+        ).data
 
 
 class FavoriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Favorite
-        fields = ()
+        fields = ('user', 'recipe')
+
+    def to_representation(self, instance):
+        return RecipeCardSerializer(
+            instance.recipe,
+            context={
+                'request': self.context.get('request')
+            }
+        ).data

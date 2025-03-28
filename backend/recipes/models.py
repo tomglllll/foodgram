@@ -55,6 +55,7 @@ class Tag(models.Model):
 
 
 class Recipe(models.Model):
+    # TODO добавить дату
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
