@@ -88,7 +88,16 @@ class RecipeListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         fields = (
-            # TODO добавить ВСЕ поля + id, cooking time, text
+            'id',
+            'tags',
+            'author',
+            'ingredients',
+            'is_favorited',
+            'is_in_shopping_cart',
+            'name',
+            'image',
+            'text',
+            'cooking_time'
         )
 
     def get_is_favorited(self, recipe):
@@ -118,7 +127,12 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         fields = (
-            # TODO перечислить все поля
+            'ingredients',
+            'tags',
+            'image',
+            'name',
+            'text',
+            'cooking_time'
         )
 
     def _create_ingredients(self, obj, ingredients):
@@ -162,7 +176,7 @@ class SubscriptionSerializer(UserSerializer):
     recipes = serializers.SerializerMethodField()
     recipes_count = serializers.SerializerMethodField()
     is_subscribed = serializers.SerializerMethodField(read_only=True)
-    # TODO
+    # TODO протестировать. поле is subscribed
 
     class Meta(UserSerializer.Meta):
         model = User
