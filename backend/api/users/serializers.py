@@ -15,7 +15,7 @@ class UserSerializer(serializers.ModelSerializer):
             'first_name',
             'last_name',
             'is_subscribed',
-            'avatar'
+            'password'
         )
         extra_kwargs = {
             'password': {
