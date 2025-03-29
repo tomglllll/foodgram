@@ -128,6 +128,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         fields = (
+            'id',
             'ingredients',
             'tags',
             'image',
@@ -149,9 +150,12 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')
+        tags = validated_data.pop('tags')
+
         validated_data['author'] = self.context.get('request').user
         obj = Recipe.objects.create(**validated_data)
         self._create_ingredients(obj, ingredients)
+        obj.tags.set(tags)
         return obj
 
     def update(self, instance, validated_data):

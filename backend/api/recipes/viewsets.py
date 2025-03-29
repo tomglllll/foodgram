@@ -1,4 +1,7 @@
-from rest_framework import viewsets
+from rest_framework import viewsets, permissions, status
+from rest_framework.response import Response
+from rest_framework.decorators import action
+
 from .serializers import (IngredientSerializer,
                           TagSerializer,
                           RecipeListSerializer,
@@ -6,7 +9,7 @@ from .serializers import (IngredientSerializer,
                           ShoppingListSerializer,
                           SubscriptionSerializer,
                           SubscriptionCreateSerializer,
-                          Favorite)
+                          FavoriteSerializer)
 
 from recipes.models import (Tag, Ingredient, IngredientInRecipe,
                             Recipe, ShoppingList, Favorite)
@@ -34,3 +37,56 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if self.request.method == 'GET':
             return RecipeListSerializer
         return RecipeCreateSerializer
+
+    @action(detail=True,
+            methods=('POST',),
+            permission_classes=(permissions.IsAuthenticated,))
+    def shopping_cart(self, request, **kwargs):
+        serializer = ShoppingListSerializer(
+            data={'recipe': kwargs.get('pk'),
+                  'user': request.user.id},
+            context={
+                'request': request
+            }
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True,
+            methods=('POST',),
+            permission_classes=(permissions.IsAuthenticated,))
+    def favorite(self, request, **kwargs):
+        serializer = FavoriteSerializer(
+            data={'recipe': kwargs.get('pk'),
+                  'user': request.user.id},
+            context={
+                'request': request
+            }
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @shopping_cart.mapping.delete
+    def delete_shopping_cart(self, request, **kwargs):
+        ShoppingList.objects.filter(
+            user=request.user,
+            recipe_id=kwargs.get('pk')
+        ).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @favorite.mapping.delete
+    def delete_favorite(self, request, **kwargs):
+        Favorite.objects.filter(
+            user=request.user,
+            recipe_id=kwargs.get('pk')
+        ).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(
+        detail=False,
+        methods=('GET',)
+    )
+    def download_shopping_cart(self, request):
+        pass
