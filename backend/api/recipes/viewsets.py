@@ -1,3 +1,6 @@
+from django.conf import settings
+from django.db.models import Sum
+from django.http import FileResponse
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -7,8 +10,6 @@ from .serializers import (IngredientSerializer,
                           RecipeListSerializer,
                           RecipeCreateSerializer,
                           ShoppingListSerializer,
-                          SubscriptionSerializer,
-                          SubscriptionCreateSerializer,
                           FavoriteSerializer)
 
 from recipes.models import (Tag, Ingredient, IngredientInRecipe,
@@ -84,9 +85,46 @@ class RecipeViewSet(viewsets.ModelViewSet):
         ).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(
-        detail=False,
-        methods=('GET',)
-    )
+    def _data_preprocessing(self, ingredients):
+        result = ''
+        total_amount = 0
+        m_unit = None
+
+        prev_item = None
+        for ingredient in ingredients:
+            name = ingredient.get('ingredient__name')
+            measurement_unit = ingredient.get('ingredient__measurement_unit')
+            curr_amount = ingredient.get('total_amount')
+
+            if prev_item and prev_item != name:
+                result += f'{prev_item} - {total_amount} {measurement_unit}\n'
+
+            prev_item = name
+            m_unit = measurement_unit
+            total_amount += curr_amount
+
+        if prev_item:
+            result += f'{prev_item} - {total_amount} {m_unit}\n'
+
+        return result
+
+    @action(detail=False,
+            methods=('GET',))
     def download_shopping_cart(self, request):
-        pass
+        ingredients = IngredientInRecipe.objects.filter(
+            recipe__shopping_list__user=request.user
+        ).values(
+            'ingredient__name',
+            'ingredient__measurement_unit',
+        ).annotate(
+            total_amount=Sum('amount')
+        ).order_by('ingredient__name')
+
+        filename = settings.SHOPPING_LIST_FILENAME
+        with open(filename, mode='w', encoding='UTF-8') as file:
+            file.write(self._data_preprocessing(ingredients))
+
+        headers = {
+            'Content-Description': f'attachment: filename={filename}'
+        }
+        return FileResponse(open(filename, 'rb'), headers=headers)

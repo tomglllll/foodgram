@@ -137,3 +137,5 @@ DJOSER = {
         'user_list': ['rest_framework.permissions.AllowAny'],
     },
 }
+
+SHOPPING_LIST_FILENAME = 'shopping_list.txt'
