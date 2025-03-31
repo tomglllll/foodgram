@@ -61,7 +61,6 @@ class IngredientInRecipeAddSerializer(serializers.ModelSerializer):
 
 class RecipeCardSerializer(serializers.ModelSerializer):
     image = Base64ImageField()
-    author = UserSerializer(read_only=True, many=False)
 
     class Meta:
         model = Recipe
@@ -197,10 +196,12 @@ class SubscriptionSerializer(UserSerializer):
 
     def get_recipes(self, obj):
         request = self.context.get('request')
-        recipes_limit = request.query_params.get(['recipes_limit'])
+        recipes_limit = request.query_params.get('recipes_limit')
+
         queryset = obj.recipes.all()
         if recipes_limit and recipes_limit.isdigit():
             queryset = queryset[:int(recipes_limit)]
+
         return RecipeCardSerializer(queryset, many=True).data
 
     def get_recipes_count(self, obj):
