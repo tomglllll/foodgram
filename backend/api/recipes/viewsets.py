@@ -1,10 +1,13 @@
 from django.conf import settings
 from django.db.models import Sum
 from django.http import FileResponse
-from rest_framework import viewsets, permissions, status
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import viewsets, permissions, status, filters
 from rest_framework.response import Response
 from rest_framework.decorators import action
 
+from .pagination import CustomPagination
+from .permissions import IsAuthorOrReadOnly
 from .serializers import (IngredientSerializer,
                           TagSerializer,
                           RecipeListSerializer,
@@ -15,24 +18,32 @@ from .serializers import (IngredientSerializer,
 from recipes.models import (Tag, Ingredient, IngredientInRecipe,
                             Recipe, ShoppingList, Favorite)
 from users.models import Subscription
-
 from .mixins import ListRetrieveGenericMixin
+from .filters import IngredientFilter, RecipeFilter
 
 
 class IngredientViewSet(ListRetrieveGenericMixin):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
+    filterset_class = IngredientFilter
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter,)
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
     pagination_class = None
 
 
 class TagsViewSet(ListRetrieveGenericMixin):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
     pagination_class = None
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
+    permission_classes = (permissions.IsAuthenticated & IsAuthorOrReadOnly,)
+    pagination_class = CustomPagination
+    filterset_class = RecipeFilter
+    filter_backends = (DjangoFilterBackend,)
 
     def get_serializer_class(self):
         if self.request.method == 'GET':

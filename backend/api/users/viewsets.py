@@ -6,6 +6,7 @@ from rest_framework.response import Response
 
 from .serializers import UserSerializer
 from api.recipes.serializers import SubscriptionSerializer, SubscriptionCreateSerializer
+from api.recipes.pagination import CustomPagination
 from users.models import Subscription, User
 
 
@@ -13,6 +14,7 @@ class UserViewSet(DjoserUserViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+    pagination_class = CustomPagination
 
     def get_permissions(self):
         if self.action == 'me':

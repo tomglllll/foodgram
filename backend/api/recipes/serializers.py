@@ -1,4 +1,4 @@
-from rest_framework import serializers
+from rest_framework import serializers, validators
 
 from drf_extra_fields.fields import Base64ImageField
 
@@ -179,8 +179,6 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
 class SubscriptionSerializer(UserSerializer):
     recipes = serializers.SerializerMethodField()
     recipes_count = serializers.SerializerMethodField()
-    is_subscribed = serializers.SerializerMethodField(read_only=True)
-    # TODO протестировать. поле is subscribed
 
     class Meta(UserSerializer.Meta):
         model = User
@@ -229,6 +227,12 @@ class ShoppingListSerializer(serializers.ModelSerializer):
     class Meta:
         model = ShoppingList
         fields = ('user', 'recipe')
+        validators = [
+            validators.UniqueTogetherValidator(
+                queryset=ShoppingList.objects.all(),
+                fields=['user', 'recipe'],
+            )
+        ]
 
     def to_representation(self, instance):
         return RecipeCardSerializer(
@@ -243,6 +247,12 @@ class FavoriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Favorite
         fields = ('user', 'recipe')
+        validators = [
+            validators.UniqueTogetherValidator(
+                queryset=Favorite.objects.all(),
+                fields=['user', 'recipe'],
+            )
+        ]
 
     def to_representation(self, instance):
         return RecipeCardSerializer(
