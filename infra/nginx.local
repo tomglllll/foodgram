@@ -18,8 +18,11 @@ server {
     }
 
     location /media/ {
-        proxy_set_header Host $http_host;
         alias /app/media/;
+    }
+
+    location /static/ {
+        alias /backend_static/;
     }
 
     location /s/ {
