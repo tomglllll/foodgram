@@ -1,19 +1,20 @@
 import base62
-from django.db import models
 from django.core.validators import MinValueValidator
+from django.db import models
+
 from users.models import User
 
 from .constants import (
-    INGREDIENT_NAME_MAX_LENGTH,
-    MEASUREMENT_MAX_LENGTH,
-    RECIPE_NAME_MAX_LENGTH,
-    TAG_NAME_MAX_LENGTH,
-    TAG_SLUG_MAX_LENGTH,
-    MIN_COOKING_TIME,
-    MIN_INGREDIENT_AMOUNT,
     COOKING_TIME_VALIDATION_MESSAGE,
     INGREDIENT_AMOUNT_VALIDATION_MESSAGE,
-    SHORT_LINK_MAX_LENGTH
+    INGREDIENT_NAME_MAX_LENGTH,
+    MEASUREMENT_MAX_LENGTH,
+    MIN_COOKING_TIME,
+    MIN_INGREDIENT_AMOUNT,
+    RECIPE_NAME_MAX_LENGTH,
+    SHORT_LINK_MAX_LENGTH,
+    TAG_NAME_MAX_LENGTH,
+    TAG_SLUG_MAX_LENGTH
 )
 from .validators import validate_slug
 

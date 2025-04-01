@@ -1,14 +1,18 @@
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewSet
-from rest_framework import permissions, status, serializers
+from rest_framework import permissions, serializers, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .serializers import UserSerializer, UserAvatarSerializer
-from api.recipes.serializers import SubscriptionSerializer, SubscriptionCreateSerializer
 from api.recipes.pagination import CustomPagination
+from api.recipes.serializers import (
+    SubscriptionCreateSerializer,
+    SubscriptionSerializer
+)
 from users.models import Subscription, User
+
+from .serializers import UserAvatarSerializer, UserSerializer
 
 
 class UserViewSet(DjoserUserViewSet):

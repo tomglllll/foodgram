@@ -1,16 +1,23 @@
-from rest_framework import serializers, validators, status
-
 from drf_extra_fields.fields import Base64ImageField
-
-from recipes.constants import (MIN_INGREDIENT_AMOUNT,
-                               INGREDIENT_AMOUNT_VALIDATION_MESSAGE,
-                               MIN_COOKING_TIME,
-                               COOKING_TIME_VALIDATION_MESSAGE)
-from recipes.models import (Tag, Ingredient, IngredientInRecipe,
-                            Recipe, ShoppingList, Favorite, ShortLink)
-from users.models import Subscription, User
+from rest_framework import serializers, status, validators
 
 from api.users.serializers import UserSerializer
+from recipes.constants import (
+    COOKING_TIME_VALIDATION_MESSAGE,
+    INGREDIENT_AMOUNT_VALIDATION_MESSAGE,
+    MIN_COOKING_TIME,
+    MIN_INGREDIENT_AMOUNT
+)
+from recipes.models import (
+    Favorite,
+    Ingredient,
+    IngredientInRecipe,
+    Recipe,
+    ShoppingList,
+    ShortLink,
+    Tag
+)
+from users.models import Subscription, User
 
 
 class IngredientSerializer(serializers.ModelSerializer):
@@ -187,7 +194,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
 
         return value
 
-    def  validate(self, attrs):
+    def validate(self, attrs):
         tags = self.initial_data.get('tags')
         if not tags:
             raise serializers.ValidationError(
