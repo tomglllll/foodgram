@@ -7,7 +7,7 @@ from recipes.constants import (MIN_INGREDIENT_AMOUNT,
                                MIN_COOKING_TIME,
                                COOKING_TIME_VALIDATION_MESSAGE)
 from recipes.models import (Tag, Ingredient, IngredientInRecipe,
-                            Recipe, ShoppingList, Favorite)
+                            Recipe, ShoppingList, Favorite, ShortLink)
 from users.models import Subscription, User
 
 from api.users.serializers import UserSerializer
@@ -208,7 +208,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
                 code=status.HTTP_400_BAD_REQUEST,
             )
         ingredient_ids = {ingr.get('id') for ingr in ingredients}
-        if len(tags) != len(ingredient_ids):
+        if len(ingredients) != len(ingredient_ids):
             raise serializers.ValidationError(
                 detail='Ингредиенты должны быть уникальными',
                 code=status.HTTP_400_BAD_REQUEST
@@ -341,3 +341,16 @@ class FavoriteSerializer(serializers.ModelSerializer):
                 'request': self.context.get('request')
             }
         ).data
+
+
+class ShortLinkSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ShortLink
+        fields = ('slug',)
+
+    def to_representation(self, instance):
+        request = self.context.get('request')
+
+        short_url = request.build_absolute_uri(f'/s/{instance.slug}/')
+
+        return {'short-link': short_url}

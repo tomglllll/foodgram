@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (Tag, Ingredient, IngredientInRecipe,
-                     Recipe)
+                     Recipe, Favorite, ShoppingList, ShortLink)
 
 
 @admin.register(Tag)
@@ -45,4 +45,21 @@ class RecipeAdmin(admin.ModelAdmin):
     get_favorites_count.short_description = 'Число добавлений в избранное'
 
 
-# TODO понять нужна ли в админке корзина (список покупок)
+@admin.register(ShortLink)
+class ShortLinkAdmin(admin.ModelAdmin):
+    list_display = ('slug', 'recipe', 'created_at')
+    search_fields = ('slug', 'recipe__name')
+
+
+@admin.register(Favorite)
+class FavoriteAdmin(admin.ModelAdmin):
+    list_display = ('user', 'recipe')
+    list_filter = ('recipe__tags',)
+    search_fields = ('recipe__name',)
+
+
+@admin.register(ShoppingList)
+class ShoppingListAdmin(admin.ModelAdmin):
+    list_display = ('user', 'recipe')
+    list_filter = ('recipe__tags',)
+    search_fields = ('recipe__name',)

@@ -1,7 +1,7 @@
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewSet
-from rest_framework import permissions, status
+from rest_framework import permissions, status, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -43,10 +43,16 @@ class UserViewSet(DjoserUserViewSet):
 
     @subscribe.mapping.delete
     def unsubscribe(self, request, id=None):
-        follow = get_object_or_404(Subscription,
-                                   user=request.user,
-                                   author=get_object_or_404(User, id=id))
-        follow.delete()
+        follow, _ = Subscription.objects.filter(
+            user=request.user,
+            author=get_object_or_404(User, id=id)
+        ).delete()
+
+        if not follow:
+            raise serializers.ValidationError(
+                detail='Подписка не существует',
+                code=status.HTTP_400_BAD_REQUEST,
+            )
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 

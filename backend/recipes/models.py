@@ -1,3 +1,4 @@
+import base62
 from django.db import models
 from django.core.validators import MinValueValidator
 from users.models import User
@@ -11,7 +12,8 @@ from .constants import (
     MIN_COOKING_TIME,
     MIN_INGREDIENT_AMOUNT,
     COOKING_TIME_VALIDATION_MESSAGE,
-    INGREDIENT_AMOUNT_VALIDATION_MESSAGE
+    INGREDIENT_AMOUNT_VALIDATION_MESSAGE,
+    SHORT_LINK_MAX_LENGTH
 )
 from .validators import validate_slug
 
@@ -183,3 +185,32 @@ class ShoppingList(models.Model):
 
     def __str__(self):
         return f'{self.user} добавил в корзину {self.recipe}'
+
+
+class ShortLink(models.Model):
+    recipe = models.OneToOneField(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='short_link',
+        verbose_name='Рецепт',
+    )
+    slug = models.CharField(
+        max_length=SHORT_LINK_MAX_LENGTH,
+        unique=True,
+        verbose_name='Короткая ссылка',
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Дата создания'
+    )
+
+    class Meta:
+        verbose_name = 'Короткая ссылка'
+        verbose_name_plural = 'Короткие ссылки'
+
+    @staticmethod
+    def generate_slug(recipe_id):
+        return base62.encode(recipe_id)
+
+    def __str__(self):
+        return f'{self.slug} - {self.recipe}'

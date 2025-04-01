@@ -7,6 +7,7 @@ from rest_framework import viewsets, permissions, status, filters, serializers
 from rest_framework.response import Response
 from rest_framework.decorators import action
 
+
 from .pagination import CustomPagination
 from .permissions import IsAuthorOrReadOnly
 from .serializers import (IngredientSerializer,
@@ -14,10 +15,11 @@ from .serializers import (IngredientSerializer,
                           RecipeListSerializer,
                           RecipeCreateSerializer,
                           ShoppingListSerializer,
-                          FavoriteSerializer)
+                          FavoriteSerializer,
+                          ShortLinkSerializer)
 
 from recipes.models import (Tag, Ingredient, IngredientInRecipe,
-                            Recipe, ShoppingList, Favorite)
+                            Recipe, ShoppingList, Favorite, ShortLink)
 from users.models import Subscription
 from .mixins import ListRetrieveGenericMixin
 from .filters import IngredientFilter, RecipeFilter
@@ -48,16 +50,31 @@ class RecipeViewSet(viewsets.ModelViewSet):
     filter_backends = (DjangoFilterBackend,)
 
     def get_serializer_class(self):
-        if self.request.method == 'GET':
+        if self.request.method == 'GET' and self.action != 'get_link':
             return RecipeListSerializer
+        elif self.action == 'get_link':
+            return ShortLinkSerializer
         return RecipeCreateSerializer
+
+    @action(detail=True, methods=['get'], url_path='get-link')
+    def get_link(self, request, **kwargs):
+        recipe = get_object_or_404(Recipe, id=kwargs.get('pk'))
+        short_link, created = ShortLink.objects.get_or_create(
+            recipe=recipe,
+            defaults={'slug': ShortLink.generate_slug(recipe.id)}
+        )
+        serializer = ShortLinkSerializer(
+            short_link,
+            context={'request': request}
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=True,
             methods=('POST',),
             permission_classes=(permissions.IsAuthenticated,))
     def shopping_cart(self, request, **kwargs):
         serializer = ShoppingListSerializer(
-            data={'recipe': kwargs.get('pk'),
+            data={'recipe': get_object_or_404(Recipe, id=kwargs.get('pk')).id,
                   'user': request.user.id},
             context={
                 'request': request
@@ -72,7 +89,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             permission_classes=(permissions.IsAuthenticated,))
     def favorite(self, request, **kwargs):
         serializer = FavoriteSerializer(
-            data={'recipe': kwargs.get('pk'),
+            data={'recipe': get_object_or_404(Recipe, id=kwargs.get('pk')).id,
                   'user': request.user.id},
             context={
                 'request': request
