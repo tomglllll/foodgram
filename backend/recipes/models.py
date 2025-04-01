@@ -55,7 +55,6 @@ class Tag(models.Model):
 
 
 class Recipe(models.Model):
-    # TODO добавить дату
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -83,10 +82,15 @@ class Recipe(models.Model):
             )
         ]
     )
+    pub_date = models.DateTimeField(
+        'Дата публикации',
+        auto_now_add=True,
+    )
 
     class Meta:
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
+        ordering = ('-pub_date',)
 
     def __str__(self):
         return self.name

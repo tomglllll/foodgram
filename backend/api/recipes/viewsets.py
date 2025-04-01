@@ -1,8 +1,9 @@
 from django.conf import settings
 from django.db.models import Sum
 from django.http import FileResponse
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets, permissions, status, filters
+from rest_framework import viewsets, permissions, status, filters, serializers
 from rest_framework.response import Response
 from rest_framework.decorators import action
 
@@ -40,9 +41,10 @@ class TagsViewSet(ListRetrieveGenericMixin):
 
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
-    permission_classes = (permissions.IsAuthenticated & IsAuthorOrReadOnly,)
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly,)
     pagination_class = CustomPagination
     filterset_class = RecipeFilter
+    filterset_fields = ['is_favorited', 'is_in_shopping_cart', 'tags', 'author']
     filter_backends = (DjangoFilterBackend,)
 
     def get_serializer_class(self):
@@ -82,18 +84,32 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @shopping_cart.mapping.delete
     def delete_shopping_cart(self, request, **kwargs):
-        ShoppingList.objects.filter(
+        recipe, _ = ShoppingList.objects.filter(
             user=request.user,
-            recipe_id=kwargs.get('pk')
+            recipe=get_object_or_404(Recipe, id=kwargs.get('pk'))
         ).delete()
+
+        if not recipe:
+            raise serializers.ValidationError(
+                detail='Рецепт не в списке покупок, нельзя удалить',
+                code=status.HTTP_400_BAD_REQUEST,
+            )
+
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @favorite.mapping.delete
     def delete_favorite(self, request, **kwargs):
-        Favorite.objects.filter(
+        recipe, _ = Favorite.objects.filter(
             user=request.user,
-            recipe_id=kwargs.get('pk')
+            recipe=get_object_or_404(Recipe, id=kwargs.get('pk'))
         ).delete()
+
+        if not recipe:
+            raise serializers.ValidationError(
+                detail='Рецепт не в избранном, нельзя удалить',
+                code=status.HTTP_400_BAD_REQUEST,
+            )
+
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def _data_preprocessing(self, ingredients):

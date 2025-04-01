@@ -1,10 +1,11 @@
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewSet
 from rest_framework import permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .serializers import UserSerializer
+from .serializers import UserSerializer, UserAvatarSerializer
 from api.recipes.serializers import SubscriptionSerializer, SubscriptionCreateSerializer
 from api.recipes.pagination import CustomPagination
 from users.models import Subscription, User
@@ -14,6 +15,7 @@ class UserViewSet(DjoserUserViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+    filter_backends = (DjangoFilterBackend,)
     pagination_class = CustomPagination
 
     def get_permissions(self):
@@ -63,3 +65,33 @@ class UserViewSet(DjoserUserViewSet):
         )
 
         return self.get_paginated_response(serializer.data)
+
+    def _set_avatar(self, data):
+        serializer = UserAvatarSerializer(self.get_instance(), data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return serializer
+
+    @action(detail=False,
+            methods=('PUT',),
+            url_path='me/avatar',
+            url_name='avatar',
+            permission_classes=(permissions.IsAuthenticated,))
+    def avatar(self, request):
+        serializer = self._set_avatar(request.data)
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_200_OK
+        )
+
+    @avatar.mapping.delete
+    def delete_avatar(self, request):
+        data = request.data
+        if 'avatar' not in data:
+            data = {'avatar': None}
+
+        self._set_avatar(data)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)

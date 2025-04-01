@@ -21,14 +21,10 @@ class User(AbstractUser):
     first_name = models.CharField(
         'Имя',
         max_length=NAME_MAX_LENGTH,
-        blank=True,
-        null=True
     )
     last_name = models.CharField(
         'Фамилия',
         max_length=NAME_MAX_LENGTH,
-        blank=True,
-        null=True
     )
     avatar = models.ImageField(
         'Аватар',

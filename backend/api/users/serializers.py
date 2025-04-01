@@ -1,3 +1,4 @@
+from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
 from users.models import User
@@ -5,6 +6,7 @@ from users.models import User
 
 class UserSerializer(serializers.ModelSerializer):
     is_subscribed = serializers.SerializerMethodField(read_only=True)
+    avatar = Base64ImageField()
 
     class Meta:
         model = User
@@ -15,7 +17,7 @@ class UserSerializer(serializers.ModelSerializer):
             'first_name',
             'last_name',
             'is_subscribed',
-            'password'
+            'avatar',
         )
         extra_kwargs = {
             'password': {
@@ -30,3 +32,11 @@ class UserSerializer(serializers.ModelSerializer):
             and request.user.is_authenticated
             and request.user.follower.filter(author_id=obj.id).exists()
         )
+
+
+class UserAvatarSerializer(serializers.ModelSerializer):
+    avatar = Base64ImageField(allow_null=True)
+
+    class Meta:
+        model = User
+        fields = ('avatar', )

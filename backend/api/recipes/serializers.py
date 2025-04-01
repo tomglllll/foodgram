@@ -1,7 +1,11 @@
-from rest_framework import serializers, validators
+from rest_framework import serializers, validators, status
 
 from drf_extra_fields.fields import Base64ImageField
 
+from recipes.constants import (MIN_INGREDIENT_AMOUNT,
+                               INGREDIENT_AMOUNT_VALIDATION_MESSAGE,
+                               MIN_COOKING_TIME,
+                               COOKING_TIME_VALIDATION_MESSAGE)
 from recipes.models import (Tag, Ingredient, IngredientInRecipe,
                             Recipe, ShoppingList, Favorite)
 from users.models import Subscription, User
@@ -57,6 +61,14 @@ class IngredientInRecipeAddSerializer(serializers.ModelSerializer):
             'id',
             'amount',
         )
+
+    def validate_amount(self, value):
+        if value < MIN_INGREDIENT_AMOUNT:
+            raise serializers.ValidationError(
+                detail=INGREDIENT_AMOUNT_VALIDATION_MESSAGE
+            )
+
+        return value
 
 
 class RecipeCardSerializer(serializers.ModelSerializer):
@@ -167,6 +179,56 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         self._create_ingredients(instance, validated_data.pop('ingredients'))
         return super().update(instance, validated_data)
 
+    def validate_cooking_time(self, value):
+        if value < MIN_COOKING_TIME:
+            raise serializers.ValidationError(
+                detail=COOKING_TIME_VALIDATION_MESSAGE
+            )
+
+        return value
+
+    def  validate(self, attrs):
+        tags = self.initial_data.get('tags')
+        if not tags:
+            raise serializers.ValidationError(
+                detail='Укажите хотя бы один тег',
+                code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if len(tags) != len({tag for tag in tags}):
+            raise serializers.ValidationError(
+                detail='Теги должны быть уникальными',
+                code=status.HTTP_400_BAD_REQUEST
+            )
+
+        ingredients = self.initial_data.get('ingredients')
+        if not ingredients:
+            raise serializers.ValidationError(
+                detail='Укажите хотя бы один ингредиент',
+                code=status.HTTP_400_BAD_REQUEST,
+            )
+        ingredient_ids = {ingr.get('id') for ingr in ingredients}
+        if len(tags) != len(ingredient_ids):
+            raise serializers.ValidationError(
+                detail='Ингредиенты должны быть уникальными',
+                code=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not ingredient_ids:
+            raise serializers.ValidationError(
+                detail=INGREDIENT_AMOUNT_VALIDATION_MESSAGE,
+                code=status.HTTP_400_BAD_REQUEST
+            )
+
+        image = self.initial_data.get('image')
+        if not image:
+            raise serializers.ValidationError(
+                detail='Картинка рецепта обязательное поле',
+                code=status.HTTP_400_BAD_REQUEST
+            )
+
+        return attrs
+
     def to_representation(self, instance):
         return RecipeListSerializer(
             instance,
@@ -197,7 +259,7 @@ class SubscriptionSerializer(UserSerializer):
         recipes_limit = request.query_params.get('recipes_limit')
 
         queryset = obj.recipes.all()
-        if recipes_limit and recipes_limit.isdigit():
+        if recipes_limit and recipes_limit.strip().isdigit():
             queryset = queryset[:int(recipes_limit)]
 
         return RecipeCardSerializer(queryset, many=True).data
@@ -213,6 +275,24 @@ class SubscriptionCreateSerializer(serializers.ModelSerializer):
             'user',
             'author'
         )
+
+    def validate(self, attrs):
+        user = attrs.get('user')
+        author = attrs.get('author')
+
+        if Subscription.objects.filter(user=user, author=author).exists():
+            raise serializers.ValidationError(
+                detail=f'Вы уже подписаны на "@{author.username}"',
+                code=status.HTTP_400_BAD_REQUEST
+            )
+
+        if user == author:
+            raise serializers.ValidationError(
+                detail='Самоподписка запрещена',
+                code=status.HTTP_400_BAD_REQUEST
+            )
+
+        return attrs
 
     def to_representation(self, instance):
         return SubscriptionSerializer(

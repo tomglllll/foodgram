@@ -117,7 +117,6 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.AllowAny',
     ),
-
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.TokenAuthentication',
     ),
@@ -135,7 +134,7 @@ DJOSER = {
     },
 
     'PERMISSIONS': {
-        'user': ['rest_framework.permissions.AllowAny'],
+        'user': ['api.recipes.permissions.IsAuthorOrReadOnly'],
         'user_list': ['rest_framework.permissions.AllowAny'],
     },
 }
