@@ -139,3 +139,5 @@ DJOSER = {
 }
 
 SHOPPING_LIST_FILENAME = 'shopping_list.txt'
+
+SITE_URL = config('SITE_URL')
