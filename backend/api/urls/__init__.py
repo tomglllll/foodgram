@@ -1,1 +1,3 @@
-from .base import *
+from .base import urlpatterns
+
+app_name = 'api'
