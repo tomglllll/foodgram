@@ -13,9 +13,8 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='*', cast=Csv())
 
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000',
-]
+CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='*', cast=Csv())
+
 CORS_URLS_REGEX = r'^/api/.*$'
 
 
@@ -102,7 +101,7 @@ USE_L10N = True
 USE_TZ = True
 
 STATIC_URL = '/static/'
-STATIC_ROOT = '/backend_static/static/'
+STATIC_ROOT = BASE_DIR / 'collected_static'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -140,3 +139,5 @@ DJOSER = {
 }
 
 SHOPPING_LIST_FILENAME = 'shopping_list.txt'
+
+SITE_URL = config('SITE_URL')
