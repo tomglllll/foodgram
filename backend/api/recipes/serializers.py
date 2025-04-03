@@ -1,13 +1,11 @@
-from drf_extra_fields.fields import Base64ImageField
-from rest_framework import serializers, status, validators
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from drf_extra_fields.fields import Base64ImageField
+from rest_framework import serializers, status, validators
 from rest_framework.validators import UniqueTogetherValidator
 
 from api.users.serializers import UserSerializer
-from recipes.constants import (
-    INGREDIENT_AMOUNT_VALIDATION_MESSAGE,
-)
+from recipes.constants import INGREDIENT_AMOUNT_VALIDATION_MESSAGE
 from recipes.models import (
     Favorite,
     Ingredient,

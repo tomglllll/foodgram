@@ -1,5 +1,5 @@
 import base62
-from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 from users.models import User
@@ -8,15 +8,15 @@ from .constants import (
     COOKING_TIME_VALIDATION_MESSAGE,
     INGREDIENT_AMOUNT_VALIDATION_MESSAGE,
     INGREDIENT_NAME_MAX_LENGTH,
+    MAX_COOKING_TIME,
+    MAX_INGREDIENT_AMOUNT,
     MEASUREMENT_MAX_LENGTH,
     MIN_COOKING_TIME,
     MIN_INGREDIENT_AMOUNT,
     RECIPE_NAME_MAX_LENGTH,
     SHORT_LINK_MAX_LENGTH,
     TAG_NAME_MAX_LENGTH,
-    TAG_SLUG_MAX_LENGTH,
-    MAX_COOKING_TIME,
-    MAX_INGREDIENT_AMOUNT
+    TAG_SLUG_MAX_LENGTH
 )
 
 

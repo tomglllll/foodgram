@@ -7,6 +7,7 @@ from rest_framework import filters, permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from api.pagination import RecipePagination
 from recipes.models import (
     Favorite,
     Ingredient,
@@ -18,7 +19,6 @@ from recipes.models import (
 
 from .filters import IngredientFilter, RecipeFilter
 from .mixins import ListRetrieveGenericMixin
-from api.pagination import RecipePagination
 from .permissions import IsAuthorOrReadOnly
 from .serializers import (
     FavoriteSerializer,
