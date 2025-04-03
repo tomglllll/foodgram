@@ -11,9 +11,9 @@ SECRET_KEY = config('SECRET_KEY', default=get_random_secret_key(), cast=str)
 
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='*', cast=Csv())
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
 
-CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='*', cast=Csv())
+CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='http://localhost,http://127.0.0.1', cast=Csv())
 
 CORS_URLS_REGEX = r'^/api/.*$'
 
@@ -66,12 +66,14 @@ WSGI_APPLICATION = 'foodgram.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('POSTGRES_DB', default='django', cast=str),
-        'USER': config('POSTGRES_USER', default='django', cast=str),
-        'PASSWORD': config('POSTGRES_PASSWORD', default='', cast=str),
-        'HOST': config('DB_HOST', default='', cast=str),
-        'PORT': config('DB_PORT', default=5432, cast=int)
+        # 'ENGINE': 'django.db.backends.postgresql',
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3'
+        # 'NAME': config('POSTGRES_DB', default='django', cast=str),
+        # 'USER': config('POSTGRES_USER', default='django', cast=str),
+        # 'PASSWORD': config('POSTGRES_PASSWORD', default='', cast=str),
+        # 'HOST': config('DB_HOST', default='', cast=str),
+        # 'PORT': config('DB_PORT', default=5432, cast=int)
     }
 }
 
@@ -119,8 +121,6 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.TokenAuthentication',
     ),
-    'DEFAULT_PAGINATION_CLASS': 'api.recipes.pagination.CustomPagination',
-    'PAGE_SIZE': PAGE_SIZE,
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
 }
 

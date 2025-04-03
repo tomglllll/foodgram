@@ -4,7 +4,6 @@ import django.core.validators
 from django.db import migrations, models
 import django.db.models.deletion
 import django.utils.timezone
-import recipes.validators
 
 
 class Migration(migrations.Migration):
@@ -42,7 +41,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='tag',
             name='slug',
-            field=models.SlugField(max_length=32, unique=True, validators=[recipes.validators.validate_slug]),
+            field=models.SlugField(max_length=32, unique=True),
         ),
         migrations.CreateModel(
             name='ShortLink',

@@ -1,12 +1,12 @@
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers, status, validators
+from django.contrib.auth import get_user_model
+from django.db import transaction
+from rest_framework.validators import UniqueTogetherValidator
 
 from api.users.serializers import UserSerializer
 from recipes.constants import (
-    COOKING_TIME_VALIDATION_MESSAGE,
     INGREDIENT_AMOUNT_VALIDATION_MESSAGE,
-    MIN_COOKING_TIME,
-    MIN_INGREDIENT_AMOUNT
 )
 from recipes.models import (
     Favorite,
@@ -14,10 +14,11 @@ from recipes.models import (
     IngredientInRecipe,
     Recipe,
     ShoppingList,
-    ShortLink,
     Tag
 )
-from users.models import Subscription, User
+from users.models import Subscription
+
+User = get_user_model()
 
 
 class IngredientSerializer(serializers.ModelSerializer):
@@ -68,14 +69,6 @@ class IngredientInRecipeAddSerializer(serializers.ModelSerializer):
             'id',
             'amount',
         )
-
-    def validate_amount(self, value):
-        if value < MIN_INGREDIENT_AMOUNT:
-            raise serializers.ValidationError(
-                detail=INGREDIENT_AMOUNT_VALIDATION_MESSAGE
-            )
-
-        return value
 
 
 class RecipeCardSerializer(serializers.ModelSerializer):
@@ -166,6 +159,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         ]
         IngredientInRecipe.objects.bulk_create(ingredients_in_recipe)
 
+    @transaction.atomic
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
@@ -176,62 +170,47 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         obj.tags.set(tags)
         return obj
 
+    @transaction.atomic
     def update(self, instance, validated_data):
-        instance.name = validated_data.get('name', instance.name)
-        instance.cooking_time = validated_data.get('cooking_time',
-                                                   instance.cooking_time)
         instance.tags.clear()
         instance.tags.set(validated_data.pop('tags'))
         instance.ingredients.clear()
         self._create_ingredients(instance, validated_data.pop('ingredients'))
         return super().update(instance, validated_data)
 
-    def validate_cooking_time(self, value):
-        if value < MIN_COOKING_TIME:
+    def validate_image(self, value):
+        if not value:
             raise serializers.ValidationError(
-                detail=COOKING_TIME_VALIDATION_MESSAGE
+                'Картинка рецепта обязательное поле'
             )
-
         return value
 
     def validate(self, attrs):
         tags = self.initial_data.get('tags')
         if not tags:
             raise serializers.ValidationError(
-                detail='Укажите хотя бы один тег',
-                code=status.HTTP_400_BAD_REQUEST,
+                'Укажите хотя бы один тег'
             )
 
-        if len(tags) != len({tag for tag in tags}):
+        if len(tags) != len(set(tags)):
             raise serializers.ValidationError(
-                detail='Теги должны быть уникальными',
-                code=status.HTTP_400_BAD_REQUEST
+                'Теги должны быть уникальными'
             )
 
         ingredients = self.initial_data.get('ingredients')
         if not ingredients:
             raise serializers.ValidationError(
-                detail='Укажите хотя бы один ингредиент',
-                code=status.HTTP_400_BAD_REQUEST,
+                'Укажите хотя бы один ингредиент'
             )
         ingredient_ids = {ingr.get('id') for ingr in ingredients}
         if len(ingredients) != len(ingredient_ids):
             raise serializers.ValidationError(
-                detail='Ингредиенты должны быть уникальными',
-                code=status.HTTP_400_BAD_REQUEST
+                'Ингредиенты должны быть уникальными'
             )
 
         if not ingredient_ids:
             raise serializers.ValidationError(
                 detail=INGREDIENT_AMOUNT_VALIDATION_MESSAGE,
-                code=status.HTTP_400_BAD_REQUEST
-            )
-
-        image = self.initial_data.get('image')
-        if not image:
-            raise serializers.ValidationError(
-                detail='Картинка рецепта обязательное поле',
-                code=status.HTTP_400_BAD_REQUEST
             )
 
         return attrs
@@ -282,16 +261,16 @@ class SubscriptionCreateSerializer(serializers.ModelSerializer):
             'user',
             'author'
         )
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Subscription.objects.all(),
+                fields=['user', 'author'],
+                message='Вы уже подписаны на этого пользователя.'
+            )]
 
     def validate(self, attrs):
         user = attrs.get('user')
         author = attrs.get('author')
-
-        if Subscription.objects.filter(user=user, author=author).exists():
-            raise serializers.ValidationError(
-                detail=f'Вы уже подписаны на "@{author.username}"',
-                code=status.HTTP_400_BAD_REQUEST
-            )
 
         if user == author:
             raise serializers.ValidationError(
@@ -348,16 +327,3 @@ class FavoriteSerializer(serializers.ModelSerializer):
                 'request': self.context.get('request')
             }
         ).data
-
-
-class ShortLinkSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ShortLink
-        fields = ('slug',)
-
-    def to_representation(self, instance):
-        request = self.context.get('request')
-
-        short_url = request.build_absolute_uri(f'/s/{instance.slug}/')
-
-        return {'short-link': short_url}

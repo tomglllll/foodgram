@@ -13,13 +13,12 @@ from recipes.models import (
     IngredientInRecipe,
     Recipe,
     ShoppingList,
-    ShortLink,
     Tag
 )
 
 from .filters import IngredientFilter, RecipeFilter
 from .mixins import ListRetrieveGenericMixin
-from .pagination import CustomPagination
+from api.pagination import RecipePagination
 from .permissions import IsAuthorOrReadOnly
 from .serializers import (
     FavoriteSerializer,
@@ -27,7 +26,6 @@ from .serializers import (
     RecipeCreateSerializer,
     RecipeListSerializer,
     ShoppingListSerializer,
-    ShortLinkSerializer,
     TagSerializer
 )
 
@@ -38,106 +36,88 @@ class IngredientViewSet(ListRetrieveGenericMixin):
     filterset_class = IngredientFilter
     filter_backends = (DjangoFilterBackend, filters.SearchFilter,)
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
-    pagination_class = None
 
 
 class TagsViewSet(ListRetrieveGenericMixin):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
-    pagination_class = None
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,
                           IsAuthorOrReadOnly,)
-    pagination_class = CustomPagination
+    pagination_class = RecipePagination
     filterset_class = RecipeFilter
-    filterset_fields = (
-        'is_favorited', 'is_in_shopping_cart', 'tags', 'author'
-    )
     filter_backends = (DjangoFilterBackend,)
 
     def get_serializer_class(self):
-        if self.request.method == 'GET' and self.action != 'get_link':
+        if self.request.method == 'GET':
             return RecipeListSerializer
-        elif self.action == 'get_link':
-            return ShortLinkSerializer
         return RecipeCreateSerializer
 
     @action(detail=True, methods=['get'], url_path='get-link')
     def get_link(self, request, **kwargs):
-        recipe = get_object_or_404(Recipe, id=kwargs.get('pk'))
-        short_link, created = ShortLink.objects.get_or_create(
-            recipe=recipe,
-            defaults={'slug': ShortLink.generate_slug(recipe.id)}
+        recipe = self.get_object()
+        short_url = request.build_absolute_uri(f'/s/{recipe.short_link}/')
+        return Response({'short_link': short_url}, status=status.HTTP_200_OK)
+
+    def __add_recipe(self, request, pk, serializer_class):
+        serializer = serializer_class(
+            data={'recipe': get_object_or_404(Recipe, id=pk).id,
+                  'user': request.user.id},
+            context={
+                'request': request
+            }
         )
-        serializer = ShortLinkSerializer(
-            short_link,
-            context={'request': request}
-        )
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True,
             methods=('POST',),
             permission_classes=(permissions.IsAuthenticated,))
     def shopping_cart(self, request, **kwargs):
-        serializer = ShoppingListSerializer(
-            data={'recipe': get_object_or_404(Recipe, id=kwargs.get('pk')).id,
-                  'user': request.user.id},
-            context={
-                'request': request
-            }
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return self.__add_recipe(request,
+                                 kwargs.get('pk'),
+                                 ShoppingListSerializer)
 
     @action(detail=True,
             methods=('POST',),
             permission_classes=(permissions.IsAuthenticated,))
     def favorite(self, request, **kwargs):
-        serializer = FavoriteSerializer(
-            data={'recipe': get_object_or_404(Recipe, id=kwargs.get('pk')).id,
-                  'user': request.user.id},
-            context={
-                'request': request
-            }
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return self.__add_recipe(request,
+                                 kwargs.get('pk'),
+                                 FavoriteSerializer)
+
+    def __delete_recipe(self, request, pk, model, error_detail):
+        deleted_count, _ = model.objects.filter(
+            user=request.user,
+            recipe=get_object_or_404(Recipe, id=pk)
+        ).delete()
+
+        if deleted_count == 0:
+            raise serializers.ValidationError(
+                detail=error_detail,
+                code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @shopping_cart.mapping.delete
     def delete_shopping_cart(self, request, **kwargs):
-        recipe, _ = ShoppingList.objects.filter(
-            user=request.user,
-            recipe=get_object_or_404(Recipe, id=kwargs.get('pk'))
-        ).delete()
-
-        if not recipe:
-            raise serializers.ValidationError(
-                detail='Рецепт не в списке покупок, нельзя удалить',
-                code=status.HTTP_400_BAD_REQUEST,
-            )
-
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return self.__delete_recipe(
+            request, kwargs.get('pk'),
+            ShoppingList,
+            'Рецепт не в списке покупок, нельзя удалить')
 
     @favorite.mapping.delete
     def delete_favorite(self, request, **kwargs):
-        recipe, _ = Favorite.objects.filter(
-            user=request.user,
-            recipe=get_object_or_404(Recipe, id=kwargs.get('pk'))
-        ).delete()
-
-        if not recipe:
-            raise serializers.ValidationError(
-                detail='Рецепт не в избранном, нельзя удалить',
-                code=status.HTTP_400_BAD_REQUEST,
-            )
-
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return self.__delete_recipe(
+            request, kwargs.get('pk'),
+            Favorite,
+            'Рецепт не в избранном, нельзя удалить')
 
     def _data_preprocessing(self, ingredients):
         result = ''

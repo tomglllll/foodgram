@@ -1,18 +1,21 @@
 from django.shortcuts import get_object_or_404
+from django.contrib.auth import get_user_model
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewSet
 from rest_framework import permissions, serializers, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from api.recipes.pagination import CustomPagination
+from api.pagination import RecipePagination
 from api.recipes.serializers import (
     SubscriptionCreateSerializer,
     SubscriptionSerializer
 )
-from users.models import Subscription, User
+from users.models import Subscription
 
 from .serializers import UserAvatarSerializer, UserSerializer
+
+User = get_user_model()
 
 
 class UserViewSet(DjoserUserViewSet):
@@ -20,7 +23,7 @@ class UserViewSet(DjoserUserViewSet):
     serializer_class = UserSerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
-    pagination_class = CustomPagination
+    pagination_class = RecipePagination
 
     def get_permissions(self):
         if self.action == 'me':
@@ -47,12 +50,12 @@ class UserViewSet(DjoserUserViewSet):
 
     @subscribe.mapping.delete
     def unsubscribe(self, request, id=None):
-        follow, _ = Subscription.objects.filter(
+        deleted_count, _ = Subscription.objects.filter(
             user=request.user,
             author=get_object_or_404(User, id=id)
         ).delete()
 
-        if not follow:
+        if deleted_count == 0:
             raise serializers.ValidationError(
                 detail='Подписка не существует',
                 code=status.HTTP_400_BAD_REQUEST,
@@ -76,20 +79,16 @@ class UserViewSet(DjoserUserViewSet):
 
         return self.get_paginated_response(serializer.data)
 
-    def _set_avatar(self, data):
-        serializer = UserAvatarSerializer(self.get_instance(), data=data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-
-        return serializer
-
     @action(detail=False,
             methods=('PUT',),
             url_path='me/avatar',
             url_name='avatar',
             permission_classes=(permissions.IsAuthenticated,))
     def avatar(self, request):
-        serializer = self._set_avatar(request.data)
+        serializer = UserAvatarSerializer(self.get_instance(),
+                                          data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
 
         return Response(
             serializer.data,
@@ -98,10 +97,5 @@ class UserViewSet(DjoserUserViewSet):
 
     @avatar.mapping.delete
     def delete_avatar(self, request):
-        data = request.data
-        if 'avatar' not in data:
-            data = {'avatar': None}
-
-        self._set_avatar(data)
-
+        request.user.avatar.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

@@ -8,12 +8,14 @@ SHORT_LINK_MAX_LENGTH = 10
 
 MIN_COOKING_TIME = 1
 MIN_INGREDIENT_AMOUNT = 1
+MAX_COOKING_TIME = 3600
+MAX_INGREDIENT_AMOUNT = 10000
 
 COOKING_TIME_VALIDATION_MESSAGE = (
-    f'Время приготовления не может быть меньше {MIN_COOKING_TIME}'
+    f'Время приготовления не может быть меньше {MIN_COOKING_TIME} '
+    f'или больше {MAX_COOKING_TIME}'
 )
 INGREDIENT_AMOUNT_VALIDATION_MESSAGE = (
-    f'Количество ингредиента не может быть меньше {MIN_INGREDIENT_AMOUNT}'
+    f'Количество ингредиента не может быть меньше {MIN_INGREDIENT_AMOUNT} '
+    f'или больше {MAX_INGREDIENT_AMOUNT}'
 )
-
-SLUG_REGEX = r'^[-a-zA-Z0-9_]+$'

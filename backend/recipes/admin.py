@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.db.models import Count
 
 from .models import (
     Favorite,
@@ -6,7 +7,6 @@ from .models import (
     IngredientInRecipe,
     Recipe,
     ShoppingList,
-    ShortLink,
     Tag
 )
 
@@ -37,26 +37,20 @@ class RecipeAdmin(admin.ModelAdmin):
         'name',
         'get_favorites_count'
     )
-
     search_fields = (
         'name', 'author__username', 'tags__name'
     )
-
     readonly_fields = ('get_favorites_count',)
     inlines = (IngredientInRecipeAdmin,)
-
     list_filter = ('tags',)
 
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return queryset.annotate(favorites_count=Count('favorites'))
+
+    @admin.display(description='Число добавлений в избранное')
     def get_favorites_count(self, recipe):
         return recipe.favorites.count()
-
-    get_favorites_count.short_description = 'Число добавлений в избранное'
-
-
-@admin.register(ShortLink)
-class ShortLinkAdmin(admin.ModelAdmin):
-    list_display = ('slug', 'recipe', 'created_at')
-    search_fields = ('slug', 'recipe__name')
 
 
 @admin.register(Favorite)

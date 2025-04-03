@@ -27,7 +27,9 @@ class Command(BaseCommand):
                 Ingredient(name=ingredient.get('name'),
                            measurement_unit=ingredient.get('measurement_unit'))
                 for ingredient in data
-            ])
+            ],
+                ignore_conflicts=True
+            )
 
     def handle(self, *args, **kwargs):
         try:
