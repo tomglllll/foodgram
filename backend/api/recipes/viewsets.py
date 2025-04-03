@@ -61,7 +61,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def get_link(self, request, **kwargs):
         recipe = self.get_object()
         short_url = request.build_absolute_uri(f'/s/{recipe.short_link}/')
-        return Response({'short_link': short_url}, status=status.HTTP_200_OK)
+        return Response({'short-link': short_url}, status=status.HTTP_200_OK)
 
     def __add_recipe(self, request, pk, serializer_class):
         serializer = serializer_class(

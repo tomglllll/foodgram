@@ -13,10 +13,6 @@ class IngredientFilter(FilterSet):
 
 
 class RecipeFilter(FilterSet):
-    author = filters.NumberFilter(
-        field_name='author',
-        lookup_expr='exact'
-    )
     tags = filters.AllValuesMultipleFilter(field_name='tags__slug')
     is_favorited = filters.BooleanFilter(
         method='get_is_favorited',
